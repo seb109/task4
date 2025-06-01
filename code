@@ -1,0 +1,84 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, roc_auc_score, roc_curve
+
+# Load dataset
+df = pd.read_csv('data.csv')
+
+# Drop irrelevant columns
+df = df.drop(columns=['id', 'Unnamed: 32'])
+
+# Map 'diagnosis' to numeric: M=1, B=0
+df['diagnosis'] = df['diagnosis'].map({'M': 1, 'B': 0})
+
+# Confirm mapping
+print(df['diagnosis'].value_counts())
+
+# Features and target
+X = df.drop(columns=['diagnosis']).values
+y = df['diagnosis'].values
+
+# Train/test split and standardize
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# Logistic Regression model
+model = LogisticRegression()
+model.fit(X_train_scaled, y_train)
+
+# Predictions and evaluation
+y_pred = model.predict(X_test_scaled)
+y_prob = model.predict_proba(X_test_scaled)[:, 1]
+
+cm = confusion_matrix(y_test, y_pred)
+precision = precision_score(y_test, y_pred)
+recall = recall_score(y_test, y_pred)
+roc_auc = roc_auc_score(y_test, y_prob)
+
+print("\nConfusion Matrix:")
+print(cm)
+print(f"\nPrecision: {precision:.3f}")
+print(f"Recall: {recall:.3f}")
+print(f"ROC-AUC: {roc_auc:.3f}")
+
+# Plot ROC Curve
+fpr, tpr, thresholds = roc_curve(y_test, y_prob)
+plt.figure(figsize=(8,6))
+plt.plot(fpr, tpr, label=f'ROC Curve (area = {roc_auc:.3f})')
+plt.plot([0,1],[0,1],'k--')
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate (Recall)')
+plt.title('ROC Curve')
+plt.legend(loc='lower right')
+plt.show()
+
+# Threshold tuning example (threshold = 0.3)
+threshold = 0.3
+y_pred_thresh = (y_prob >= threshold).astype(int)
+cm_thresh = confusion_matrix(y_test, y_pred_thresh)
+precision_thresh = precision_score(y_test, y_pred_thresh)
+recall_thresh = recall_score(y_test, y_pred_thresh)
+
+print(f"\nConfusion Matrix at threshold {threshold}:")
+print(cm_thresh)
+print(f"Precision at threshold {threshold}: {precision_thresh:.3f}")
+print(f"Recall at threshold {threshold}: {recall_thresh:.3f}")
+
+# Sigmoid function plot
+z = np.linspace(-10, 10, 100)
+sigmoid = 1 / (1 + np.exp(-z))
+
+plt.figure(figsize=(8,4))
+plt.plot(z, sigmoid)
+plt.title('Sigmoid Function')
+plt.xlabel('z')
+plt.ylabel('σ(z)')
+plt.grid(True)
+plt.show()
